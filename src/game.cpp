@@ -195,3 +195,174 @@ void Game::renderDifficulty() const
     mvwprintw(this->mWindows[2], 9, 1, difficultyString.c_str());
     wrefresh(this->mWindows[2]);
 }
+
+void Game::initializeGame()
+{
+    this->mPtrSnake.reset(new Snake(this->mGameBoardWidth, this->mGameBoardHeight, this->mInitialSnakeLength));
+    this->createRamdonFood();
+    this->mPtrSnake->senseFood(this->mFood);
+    this->mDifficulty = 0;
+    this->mPoints = 0;
+    this->mDelay = this->mBaseDelay;
+}
+
+void Game::createRamdonFood()
+{
+    vector<SnakeBody> availableGrids;
+    for (int i = 1; i < this->mGameBoardHeight - 1; i++)
+    {
+        for (int j = 1; j < this->mGameBoardWidth - 1; j++)
+        {
+            if (this->mPtrSnake->isPartOfSnake(j, i))
+            {
+                continue;
+            }
+            else
+            {
+                availableGrids.push_back(SnakeBody(j, i));
+            }
+        }
+    }
+
+    // Randomly select a grid that is not occupied by the snake
+    int random_idx = rand() % availableGrids.size();
+    this->mFood = availableGrids[random_idx];
+}
+
+void Game::renderFood() const
+{
+    mvwaddch(this->mWindows[1], this->mFood.getY(), this->mFood.getX(), this->mFoodSymbol);
+    wrefresh(this->mWindows[1]);
+}
+
+void Game::renderSnake() const
+{
+    int snakeLength = this->mPtrSnake->getLength();
+    vector<SnakeBody> &snake = this->mPtrSnake->getSnake();
+    for (int i = 0; i < snakeLength; i++)
+    {
+        mvwaddch(this->mWindows[1], snake[i].getY(), snake[i].getX(), this->mSnakeSymbol);
+    }
+    wrefresh(this->mWindows[1]);
+}
+
+void Game::controlSnake() const
+{
+    int key;
+    key = getch();
+    switch (key)
+    {
+    case 'W':
+    case 'w':
+    case KEY_UP:
+    {
+        this->mPtrSnake->changeDirection(Direction::Up);
+        break;
+    }
+    case 'S':
+    case 's':
+    case KEY_DOWN:
+    {
+        this->mPtrSnake->changeDirection(Direction::Down);
+        break;
+    }
+    case 'A':
+    case 'a':
+    case KEY_LEFT:
+    {
+        this->mPtrSnake->changeDirection(Direction::Left);
+        break;
+    }
+    case 'D':
+    case 'd':
+    case KEY_RIGHT:
+    {
+        this->mPtrSnake->changeDirection(Direction::Right);
+        break;
+    }
+    default:
+    {
+        break;
+    }
+    }
+}
+
+void Game::renderBoards() const
+{
+    for (int i = 0; i < this->mWindows.size(); i++)
+    {
+        werase(this->mWindows[i]);
+    }
+    this->renderInformationBoard();
+    this->renderGameBoard();
+    this->renderInstructionBoard();
+    for (int i = 0; i < this->mWindows.size(); i++)
+    {
+        box(this->mWindows[i], 0, 0);
+        wrefresh(this->mWindows[i]);
+    }
+    this->renderLeaderBoard();
+}
+
+void Game::adjustDelay()
+{
+    this->mDifficulty = this->mPoints / 5;
+    if (mPoints % 5 == 0)
+    {
+        this->mDelay = this->mBaseDelay * pow(0.75, this->mDifficulty);
+    }
+}
+
+void Game::runGame()
+{
+    bool moveSuccess;
+    int key;
+    while (true)
+    {
+        this->controlSnake();
+        werase(this->mWindows[1]);
+        box(this->mWindows[1], 0, 0);
+
+        bool eatFood = this->mPtrSnake->moveFoward();
+        bool collision = this->mPtrSnake->checkCollision();
+        if (collision == true)
+        {
+            break;
+        }
+        this->renderSnake();
+        if (eatFood == true)
+        {
+            this->mPoints += 1;
+            this->createRamdonFood();
+            this->mPtrSnake->senseFood(this->mFood);
+            this->adjustDelay();
+        }
+        this->renderFood();
+        this->renderDifficulty();
+        this->renderPoints();
+
+        this_thread::sleep_for(chrono::milliseconds(this->mDelay));
+
+        refresh();
+    }
+}
+
+void Game::startGame()
+{
+    refresh();
+    bool choice;
+    while (true)
+    {
+        this->readLeaderBoard();
+        this->renderBoards();
+        this->initializeGame();
+        this->runGame();
+        this->updateLeaderBoard();
+        this->writeLeaderBoard();
+        choice = this->renderRestartMenu();
+        if (choice == false)
+        {
+            break;
+        }
+    }
+}
