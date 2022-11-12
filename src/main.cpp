@@ -1,7 +1,9 @@
 #include "game.hpp"
 
-void main()
+int main()
 {
     Game game;
     game.startGame();
+
+    return 0;
 }
