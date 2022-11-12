@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+using namespace std;
 
 SnakeBody::SnakeBody()
 {
@@ -35,7 +36,7 @@ Snake::Snake(int gameBoardWidth, int gameBoardHeight, int initialSnakeLength) : 
 
 void Snake::setRandomSeed()
 {
-    std::srand(std::time(nullptr));
+    srand(time(nullptr));
 }
 
 void Snake::initializeSnake()
@@ -114,7 +115,7 @@ void Snake::senseFood(SnakeBody food)
     this->mFood = food;
 }
 
-std::vector<SnakeBody> &Snake::getSnake()
+vector<SnakeBody> &Snake::getSnake()
 {
     return this->mSnake;
 }
